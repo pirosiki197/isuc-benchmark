@@ -2,8 +2,15 @@
 
 set -eu
 
+CACHE=$1
+
+if [ $CACHE != "cache" ] && [ $CACHE != "nocache" ]; then
+    echo "Usage: $0 <cache|nocache>"
+    exit 1
+fi
+
 GIT_HASH=$(git rev-parse --short HEAD)
-OUT_DIR="logs/$GIT_HASH"
+OUT_DIR="logs/$CACHE/$GIT_HASH"
 EXEC_USER=$(whoami)
 
 mkdir -p "$OUT_DIR"
@@ -23,3 +30,7 @@ for LOG_FILE in "${LOG_FILES[@]}"; do
         echo "File not found: $LOG_FILE"
     fi
 done
+
+gzip -f "$OUT_DIR"/*.log
+
+echo "Logs collected to $OUT_DIR"
