@@ -16,6 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	dynamic_extractor "github.com/traP-jp/isuc/extractor/dynamic"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -93,7 +94,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 		conf.ParseTime = parseTime
 	}
 
-	db, err := sqlx.Open("mysql", conf.FormatDSN())
+	db, err := sqlx.Open("mysql+analyzer", conf.FormatDSN())
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +128,8 @@ func main() {
 	cookieStore.Options.Domain = "*.u.isucon.local"
 	e.Use(session.Middleware(cookieStore))
 	// e.Use(middleware.Recover())
+
+	dynamic_extractor.StartServer()
 
 	// 初期化
 	e.POST("/api/initialize", initializeHandler)
