@@ -2,9 +2,6 @@
 
 set -eu
 
-git fetch origin
-git reset --hard origin/main
-
 if [ -f $(hostname)/env.sh ]; then
     cp -f $(hostname)/env.sh /home/isucon/env.sh
 fi
