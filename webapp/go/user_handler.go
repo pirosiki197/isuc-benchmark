@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"time"
 
@@ -104,6 +101,17 @@ func getIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
 	}
 
+	ifNoneMatch := c.Request().Header.Get("If-None-Match")
+	if ifNoneMatch != "" {
+		hash, err := iconHashCache.Get(ctx, user.ID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get icon hash: "+err.Error())
+		}
+		if ifNoneMatch == `"`+hash+`"` {
+			return c.NoContent(http.StatusNotModified)
+		}
+	}
+
 	var image []byte
 	if err := tx.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", user.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -157,6 +165,8 @@ func postIconHandler(c echo.Context) error {
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
+
+	iconHashCache.Forget(userID)
 
 	return c.JSON(http.StatusCreated, &PostIconResponse{
 		ID: iconID,
@@ -404,17 +414,10 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 		return User{}, err
 	}
 
-	var image []byte
-	if err := tx.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return User{}, err
-		}
-		image, err = os.ReadFile(fallbackImage)
-		if err != nil {
-			return User{}, err
-		}
+	iconHash, err := iconHashCache.Get(ctx, userModel.ID)
+	if err != nil {
+		return User{}, err
 	}
-	iconHash := sha256.Sum256(image)
 
 	user := User{
 		ID:          userModel.ID,
@@ -425,7 +428,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 			ID:       themeModel.ID,
 			DarkMode: themeModel.DarkMode,
 		},
-		IconHash: fmt.Sprintf("%x", iconHash),
+		IconHash: iconHash,
 	}
 
 	return user, nil
