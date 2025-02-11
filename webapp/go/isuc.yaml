@@ -637,3 +637,11 @@ queries:
         operator: eq
         placeholder:
           index: 0
+  - query: DELETE FROM livecomments WHERE id = ?;
+    type: delete
+    table: livecomments
+    conditions:
+      - column: id
+        operator: eq
+        placeholder:
+          index: 0

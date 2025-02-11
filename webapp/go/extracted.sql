@@ -55,3 +55,4 @@ SELECT COUNT(*) FROM livestream_viewers_history WHERE livestream_id = ?;
 SELECT * FROM livestreams WHERE id = ?;
 INSERT INTO users (name, display_name, description, password) VALUES (?);
 SELECT * FROM ng_words WHERE livestream_id = ?;
+DELETE FROM livecomments WHERE id = ?;

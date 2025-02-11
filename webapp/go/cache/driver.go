@@ -660,8 +660,29 @@ const cachePlanRaw = `queries:
         operator: eq
         placeholder:
           index: 0
+  - query: DELETE FROM livecomments WHERE id = ?;
+    type: delete
+    table: livecomments
+    conditions:
+      - column: id
+        operator: eq
+        placeholder:
+          index: 0
 `
 const schemaRaw = `USE ` + "`" + `isupipe` + "`" + `;
+
+DROP TABLE IF EXISTS ` + "`" + `users` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `icons` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `themes` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `livestreams` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `reservation_slots` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `tags` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `livestream_tags` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `livestream_viewers_history` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `livecomments` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `livecomment_reports` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `ng_words` + "`" + `;
+DROP TABLE IF EXISTS ` + "`" + `reactions` + "`" + `;
 
 -- ユーザ (配信者、視聴者)
 CREATE TABLE ` + "`" + `users` + "`" + ` (
@@ -677,14 +698,16 @@ CREATE TABLE ` + "`" + `users` + "`" + ` (
 CREATE TABLE ` + "`" + `icons` + "`" + ` (
   ` + "`" + `id` + "`" + ` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   ` + "`" + `user_id` + "`" + ` BIGINT NOT NULL,
-  ` + "`" + `image` + "`" + ` LONGBLOB NOT NULL
+  ` + "`" + `image` + "`" + ` LONGBLOB NOT NULL,
+  INDEX ` + "`" + `idx_user_id` + "`" + ` (` + "`" + `user_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ユーザごとのカスタムテーマ
 CREATE TABLE ` + "`" + `themes` + "`" + ` (
   ` + "`" + `id` + "`" + ` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   ` + "`" + `user_id` + "`" + ` BIGINT NOT NULL,
-  ` + "`" + `dark_mode` + "`" + ` BOOLEAN NOT NULL
+  ` + "`" + `dark_mode` + "`" + ` BOOLEAN NOT NULL,
+  INDEX ` + "`" + `idx_user_id` + "`" + ` (` + "`" + `user_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ライブ配信
@@ -696,7 +719,8 @@ CREATE TABLE ` + "`" + `livestreams` + "`" + ` (
   ` + "`" + `playlist_url` + "`" + ` VARCHAR(255) NOT NULL,
   ` + "`" + `thumbnail_url` + "`" + ` VARCHAR(255) NOT NULL,
   ` + "`" + `start_at` + "`" + ` BIGINT NOT NULL,
-  ` + "`" + `end_at` + "`" + ` BIGINT NOT NULL
+  ` + "`" + `end_at` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `idx_user_id` + "`" + ` (` + "`" + `user_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ライブ配信予約枠
@@ -704,7 +728,8 @@ CREATE TABLE ` + "`" + `reservation_slots` + "`" + ` (
   ` + "`" + `id` + "`" + ` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   ` + "`" + `slot` + "`" + ` BIGINT NOT NULL,
   ` + "`" + `start_at` + "`" + ` BIGINT NOT NULL,
-  ` + "`" + `end_at` + "`" + ` BIGINT NOT NULL
+  ` + "`" + `end_at` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `start_at_end_at` + "`" + ` (` + "`" + `start_at` + "`" + `, ` + "`" + `end_at` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ライブストリームに付与される、サービスで定義されたタグ
@@ -718,7 +743,9 @@ CREATE TABLE ` + "`" + `tags` + "`" + ` (
 CREATE TABLE ` + "`" + `livestream_tags` + "`" + ` (
   ` + "`" + `id` + "`" + ` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   ` + "`" + `livestream_id` + "`" + ` BIGINT NOT NULL,
-  ` + "`" + `tag_id` + "`" + ` BIGINT NOT NULL
+  ` + "`" + `tag_id` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `idx_livestream_id` + "`" + ` (` + "`" + `livestream_id` + "`" + `),
+  INDEX ` + "`" + `idx_tag_id_livestream_id` + "`" + ` (` + "`" + `tag_id` + "`" + `, ` + "`" + `livestream_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ライブ配信視聴履歴
@@ -736,7 +763,8 @@ CREATE TABLE ` + "`" + `livecomments` + "`" + ` (
   ` + "`" + `livestream_id` + "`" + ` BIGINT NOT NULL,
   ` + "`" + `comment` + "`" + ` VARCHAR(255) NOT NULL,
   ` + "`" + `tip` + "`" + ` BIGINT NOT NULL DEFAULT 0,
-  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL
+  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `idx_livestream_id` + "`" + ` (` + "`" + `livestream_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 -- ユーザからのライブコメントのスパム報告
@@ -754,7 +782,9 @@ CREATE TABLE ` + "`" + `ng_words` + "`" + ` (
   ` + "`" + `user_id` + "`" + ` BIGINT NOT NULL,
   ` + "`" + `livestream_id` + "`" + ` BIGINT NOT NULL,
   ` + "`" + `word` + "`" + ` VARCHAR(255) NOT NULL,
-  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL
+  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `idx_livestream_id` + "`" + ` (` + "`" + `livestream_id` + "`" + `),
+  INDEX ` + "`" + `idx_user_id_livestream_id` + "`" + ` (` + "`" + `user_id` + "`" + `, ` + "`" + `livestream_id` + "`" + `)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 CREATE INDEX ng_words_word ON ng_words(` + "`" + `word` + "`" + `);
 
@@ -765,8 +795,10 @@ CREATE TABLE ` + "`" + `reactions` + "`" + ` (
   ` + "`" + `livestream_id` + "`" + ` BIGINT NOT NULL,
   -- :innocent:, :tada:, etc...
   ` + "`" + `emoji_name` + "`" + ` VARCHAR(255) NOT NULL,
-  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;`
+  ` + "`" + `created_at` + "`" + ` BIGINT NOT NULL,
+  INDEX ` + "`" + `idx_livestream_id` + "`" + ` (` + "`" + `livestream_id` + "`" + `)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+`
 
 func init() {
 	sql.Register("mysql+cache", CacheDriver{})
