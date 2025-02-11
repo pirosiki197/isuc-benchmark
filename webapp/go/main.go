@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -13,10 +14,10 @@ import (
 	"strconv"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/isucon/isucon13/webapp/go/cache"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	dynamic_extractor "github.com/traP-jp/isuc/extractor/dynamic"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -66,6 +67,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	conf.Passwd = "isucon"
 	conf.DBName = "isupipe"
 	conf.ParseTime = true
+	conf.InterpolateParams = true
 
 	if v, ok := os.LookupEnv(networkTypeEnvKey); ok {
 		conf.Net = v
@@ -94,7 +96,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 		conf.ParseTime = parseTime
 	}
 
-	db, err := sqlx.Open("mysql+analyzer", conf.FormatDSN())
+	db, err := sqlx.Open("mysql", conf.FormatDSN())
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +131,13 @@ func main() {
 	e.Use(session.Middleware(cookieStore))
 	// e.Use(middleware.Recover())
 
-	dynamic_extractor.StartServer()
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+			io.WriteString(w, cache.ExportMetrics())
+		})
+		http.ListenAndServe(":10000", mux)
+	}()
 
 	// 初期化
 	e.POST("/api/initialize", initializeHandler)
